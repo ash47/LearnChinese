@@ -1,0 +1,16 @@
+{
+  "name": "learnchinese",
+  "version": "1.0.0",
+  "description": "Learn chinese super fast",
+  "main": "pwn_vocab.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ash47",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "axios": "^0.21.0",
+    "axios-rate-limit": "^1.3.0",
+    "chinese-to-pinyin": "^1.3.1"
+  }
+}
