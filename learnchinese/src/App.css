@@ -1,0 +1,17 @@
+.translationTable {
+  text-align: left;
+}
+
+.translationTable td, .translationTable th {
+  border: 1px solid #000;
+  padding: 4px;
+  font-size: 48px;
+}
+
+.solved {
+  background: #0F0;
+}
+
+.clickable {
+  cursor: pointer;
+}
