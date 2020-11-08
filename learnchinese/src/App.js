@@ -1,5 +1,7 @@
 import './App.css';
 import React from 'react';
+import RenderSentence from './RenderSentence.js';
+import CharacterToPinYin from './character_to_pinyin.js';
 
 function getAltFormLength(theWord) {
   return theWord.alternative_forms.reduce((currentCount, altForm) => {
@@ -32,6 +34,9 @@ class App extends React.Component {
     
     this.state.theVocab = require('./vocab.json');
     this.sortVocab();
+
+    // Load in the vocab
+    CharacterToPinYin.loadVocab(this.state.theVocab);
 
     // Set default item
     //this.state.currentItem = this.state.theVocab[0];
@@ -383,6 +388,11 @@ class App extends React.Component {
   render() {
     const currentItem = this.state.currentItem;
     const theChallenge = this.state.theChallenge;
+    let alternativeForms = [];
+    
+    if(!!currentItem) {
+      alternativeForms = currentItem.alternative_forms;
+    }
 
     const rows = [];
 
@@ -427,7 +437,7 @@ class App extends React.Component {
                     </th>
                     <td>
                       {
-                        currentItem.word
+                        // <RenderSentence text={currentItem.word} tokens={currentItem.tokens} />
                       }
                     </td>
                   </tr>
@@ -487,6 +497,47 @@ class App extends React.Component {
               </table>
             </div>
             <div>
+              <table className="translationTable">
+                <thead>
+                  <tr>
+                    <th>
+                      Chinese
+                    </th>
+                    <th>
+                      Listen
+                    </th>
+                    <th>
+                      English
+                    </th>
+                  </tr>                  
+                </thead>
+                <tbody>
+                  {
+                    alternativeForms.map((alternativeForm) => {
+                      return <tr key={alternativeForm.text}>
+                        <td>
+                          {
+                            <RenderSentence text={alternativeForm.text} tokens={alternativeForm.tokens} />
+                          }
+                        </td>
+                        <td>
+                          <audio key={alternativeForm.tts} controls>
+                            <source src={alternativeForm.tts} type="audio/ogg" />
+                          </audio>
+                        </td>
+                        <td>
+                          {
+                            alternativeForm.translation_text
+                          }
+                        </td>
+                      </tr>
+                    })
+                  }
+                </tbody>
+              </table>
+              
+            </div>
+            <div>
               <button onClick={this.changeWord.bind(this, -1)}>Previous</button>
               <button onClick={this.changeWord.bind(this, null)}>Back to Index</button>
               <button onClick={this.doChallenge.bind(this)}>Do Challenge</button>
@@ -532,7 +583,7 @@ class App extends React.Component {
               <tbody>
                 {
                   this.state.theVocab.map((thisWord, wordCount) => {
-                    return <tr>
+                    return <tr key={wordCount}>
                       <td>
                         {
                           thisWord.word

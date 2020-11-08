@@ -15,3 +15,22 @@
 .clickable {
   cursor: pointer;
 }
+
+.translationTableTooltip td, .translationTableTooltip th {
+  font-size: 32px;
+  padding: 16px;
+  border: 1px solid #000;
+  white-space: nowrap;
+  color: #000;
+}
+
+.selectedTranslation {
+  font-weight: bold;
+  color: #0F0 !important;
+}
+
+.translationTooltipPart {
+  display: inline-block;
+  margin-right: 16px;
+  text-align: center;
+}
