@@ -94,7 +94,6 @@ class App extends React.Component {
   }
 
   keyboardHandler(event) {
-    console.log(event.keyCode)
     if(event.keyCode >= '0'.charCodeAt(0) && event.keyCode <= '9'.charCodeAt(0)) {
       //Do whatever when esc is pressed
       event.preventDefault();
@@ -107,7 +106,7 @@ class App extends React.Component {
       let pressRegion = this.mappedKeys[event.keyCode];
 
       if(this.keyBinds.hasOwnProperty(pressRegion)) {
-        this.keyBinds[pressRegion]();
+        this.keyBinds[pressRegion](event);
       }
     }
 
@@ -695,7 +694,15 @@ class App extends React.Component {
 
           let keyBindAnswer = this.onAnswerClicked.bind(this, toSolve, isCorrect, theNumber);
           let keyBindPlayAudio = this.playAudio.bind(this, tts);
-          this.keyBinds[theNumber] = keyBindPlayAudio;
+
+          let keyBindCheckShift = (event) => {
+            if(event.shiftKey) {
+              keyBindAnswer(event);
+            } else {
+              keyBindPlayAudio(event);
+            }
+          };
+          this.keyBinds[theNumber] = keyBindCheckShift.bind(this);
 
           return <div key={tts} className={className}>
             {
@@ -708,6 +715,13 @@ class App extends React.Component {
                 </Button>
                 <br />
                 <div>
+                  Play Sample - 
+                  {
+                    this.getKeyCodeText(theNumber)
+                  }
+                </div>
+                <div>
+                  Answer - Shift + 
                   {
                     this.getKeyCodeText(theNumber)
                   }
