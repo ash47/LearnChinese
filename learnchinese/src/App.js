@@ -257,6 +257,19 @@ class App extends React.Component {
   }
 
   nextChallenge() {
+    if(this.state.hadFailThisRound) {
+      // No longer a fail this round
+      this.setState({
+        hadFailThisRound: false,
+      });
+
+      // Do it again
+      setTimeout(this.generateChallenge.bind(this), 1); 
+
+      // Stop
+      return;
+    }
+
     let learnMode = this.state.learnMode;
     let wordNum = this.state.wordNum + 1;
     let toLearn = [...this.state.toLearn];
@@ -265,7 +278,7 @@ class App extends React.Component {
     let learnPhase = this.state.learnPhase;
 
     const newState = {
-
+      hadFailThisRound: false,
     };
 
     if(learnMode === 0) {
@@ -298,8 +311,6 @@ class App extends React.Component {
 
     this.setState(newState);
 
-    console.log(newState);
-
     if(learnMode === 0) {
       // Generate the challenge based on the current learning objectives defined
       setTimeout(this.generateChallenge.bind(this), 1);
@@ -329,7 +340,9 @@ class App extends React.Component {
       }
     }
 
+    // Random order
     const toLearn = Object.keys(challengeParts);
+    toLearn.sort(randomSort);
 
     this.setState({
       toLearn: toLearn,
@@ -362,8 +375,6 @@ class App extends React.Component {
 
     // Generate the challenge based on the current learning objectives defined
     setTimeout(this.generateChallenge.bind(this), 1);
-
-    console.log(toLearn);
   }
 
   finishChallenge() {
@@ -386,6 +397,7 @@ class App extends React.Component {
     } else {
       this.setState({
         hadFail: this.state.hadFail + 1,
+        hadFailThisRound: true,
       });
     }
   }
@@ -525,6 +537,20 @@ class App extends React.Component {
       <div className="App">
         {
           !!theChallenge && <div>
+            <div>
+              {
+                (this.state.wordNum + 1) + '/' + (this.state.toLearn.length) + ' '
+              }
+              {
+                (this.state.hadFail === 0) && 'No Mistakes in this set'
+              }
+              {
+                (this.state.hadFail === 1) && '1 Mistake in this set'
+              }
+              {
+                (this.state.hadFail > 1) && (this.state.hadFail + ' Mistakes in this set')
+              }
+            </div>
             <table className="translationTable">
               <tbody>
                 {
