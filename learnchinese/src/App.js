@@ -2,6 +2,7 @@ import './App.css';
 import React from 'react';
 import RenderSentence from './RenderSentence.js';
 import CharacterToPinYin from './character_to_pinyin.js';
+import Button from '@material-ui/core/Button';
 
 function getAltFormLength(theWord) {
   return theWord.alternative_forms.reduce((currentCount, altForm) => {
@@ -40,24 +41,113 @@ class App extends React.Component {
 
     // Set default item
     //this.state.currentItem = this.state.theVocab[0];
+
+    // Bind up key handler
+    this.keyboardHandler = this.keyboardHandler.bind(this);
+    this.keyBinds = {};
+
+    this.mappedKeys = {
+      ['q'.charCodeAt(0)]: 0,
+      ['Q'.charCodeAt(0)]: 0,
+      ['w'.charCodeAt(0)]: 0,
+      ['W'.charCodeAt(0)]: 0,
+      ['e'.charCodeAt(0)]: 0,
+      ['E'.charCodeAt(0)]: 0,
+      ['r'.charCodeAt(0)]: 0,
+      ['R'.charCodeAt(0)]: 0,
+
+      ['u'.charCodeAt(0)]: 1,
+      ['U'.charCodeAt(0)]: 1,
+      ['i'.charCodeAt(0)]: 1,
+      ['I'.charCodeAt(0)]: 1,
+      ['o'.charCodeAt(0)]: 1,
+      ['O'.charCodeAt(0)]: 1,
+      ['p'.charCodeAt(0)]: 1,
+      ['P'.charCodeAt(0)]: 1,
+      ['['.charCodeAt(0)]: 1,
+      ['{'.charCodeAt(0)]: 1,
+      [']'.charCodeAt(0)]: 1,
+      ['}'.charCodeAt(0)]: 1,
+      ['\\'.charCodeAt(0)]: 1,
+      ['|'.charCodeAt(0)]: 1,
+
+      ['z'.charCodeAt(0)]: 2,
+      ['Z'.charCodeAt(0)]: 2,
+      ['x'.charCodeAt(0)]: 2,
+      ['X'.charCodeAt(0)]: 2,
+      ['c'.charCodeAt(0)]: 2,
+      ['C'.charCodeAt(0)]: 2,
+      ['v'.charCodeAt(0)]: 2,
+      ['V'.charCodeAt(0)]: 2,
+
+      ['n'.charCodeAt(0)]: 3,
+      ['N'.charCodeAt(0)]: 3,
+      ['m'.charCodeAt(0)]: 3,
+      ['M'.charCodeAt(0)]: 3,
+      [','.charCodeAt(0)]: 3,
+      ['<'.charCodeAt(0)]: 3,
+      ['.'.charCodeAt(0)]: 3,
+      ['>'.charCodeAt(0)]: 3,
+      ['/'.charCodeAt(0)]: 3,
+      ['/'.charCodeAt(0)]: 3,
+    };
+  }
+
+  keyboardHandler(event) {
+    console.log(event.keyCode)
+    if(event.keyCode >= '0'.charCodeAt(0) && event.keyCode <= '9'.charCodeAt(0)) {
+      //Do whatever when esc is pressed
+      event.preventDefault();
+
+      // Try play sound
+      this.playTtsIfUnlocked();
+    }
+
+    if(this.mappedKeys.hasOwnProperty(event.keyCode)) {
+      let pressRegion = this.mappedKeys[event.keyCode];
+
+      if(this.keyBinds.hasOwnProperty(pressRegion)) {
+        this.keyBinds[pressRegion]();
+      }
+    }
+
+    // Handle going to next challenge
+    if(event.keyCode === ' '.charCodeAt(0)) {
+      this.nextChallenge();
+    }
+  }
+
+  playTtsIfUnlocked() {
+    const ttsSound = this.getTts();
+
+    if(ttsSound !== null) {
+      this.playAudio(ttsSound);
+    }
+  }
+
+  componentDidMount(){
+    document.addEventListener('keydown', this.keyboardHandler, false);
+  }
+  componentWillUnmount(){
+    document.removeEventListener('keydown', this.keyboardHandler, false);
   }
 
   sortVocab() {
     this.state.theVocab.sort((a, b) => {
       // Order by pinyin
-      if(a.pinyinWithoutTone < b.pinyinWithoutTone) {
-        return -1;
-      }
-      if(a.pinyinWithoutTone > b.pinyinWithoutTone) {
-        return 1;
-      }
+      // if(a.pinyinWithoutTone < b.pinyinWithoutTone) {
+      //   return -1;
+      // }
+      // if(a.pinyinWithoutTone > b.pinyinWithoutTone) {
+      //   return 1;
+      // }
 
-      if(a.pinyinNumber < b.pinyinNumber) {
-        return -1;
-      }
-      if(a.pinyinNumber > b.pinyinNumber) {
-        return 1;
-      }
+      // if(a.pinyinNumber < b.pinyinNumber) {
+      //   return -1;
+      // }
+      // if(a.pinyinNumber > b.pinyinNumber) {
+      //   return 1;
+      // }
 
       // Smaller words first
       if(a.word.length < b.word.length) {
@@ -203,8 +293,9 @@ class App extends React.Component {
       ],
 
       correctPinyinWithTone: currentItem.pinyinWithTone,
-      pinyinWithTone: [
-        currentItem.pinyinWithTone
+      correctPinyinWithoutTone: currentItem.pinyinWithoutTone,
+      pinyinWithoutTone: [
+        currentItem.pinyinWithoutTone
       ],
 
       correctTranslations: currentItem.translations,
@@ -238,7 +329,7 @@ class App extends React.Component {
       if(!seenWords.hasOwnProperty(theWord)) {
         seenWords[theWord] = true;
         theChallenge.word.push(possibleItem.word);
-        theChallenge.pinyinWithTone.push(possibleItem.pinyinWithTone);
+        theChallenge.pinyinWithoutTone.push(possibleItem.pinyinWithoutTone);
         theChallenge.translations.push(possibleItem.translations);
         theChallenge.tts.push(possibleItem.tts);
       }
@@ -247,24 +338,55 @@ class App extends React.Component {
     // Sort it
     theChallenge.pinyinText.sort(randomSort);
     theChallenge.word.sort(randomSort);
-    theChallenge.pinyinWithTone.sort(randomSort);
+    theChallenge.pinyinWithoutTone.sort(randomSort);
     theChallenge.translations.sort(randomSort);
     theChallenge.tts.sort(randomSort);
 
     this.setState({
       theChallenge: theChallenge,
+      isSolved: false,
+      right0: false,
+      right1: false,
+      right2: false,
+      right3: false,
+      wrong0: false,
+      wrong1: false,
+      wrong2: false,
+      wrong3: false,
     });
+
+    // Try play audio if it's available
+    setTimeout(this.playTtsIfUnlocked.bind(this), 1);
   }
 
   nextChallenge() {
+    if(!this.state.isSolved) return;
+
+    if(this.state.theChallenge.solved + 1 >= this.state.theChallenge.solveOrder.length) {
+      this.nextChallengeMajor();
+    } else {
+      this.nextChallengePart();
+    }
+  }
+
+  nextChallengeMajor() {
     if(this.state.hadFailThisRound) {
       // No longer a fail this round
       this.setState({
         hadFailThisRound: false,
+        isSolved: false,
+        right0: false,
+        right1: false,
+        right2: false,
+        right3: false,
+        wrong0: false,
+        wrong1: false,
+        wrong2: false,
+        wrong3: false,
       });
 
       // Do it again
-      setTimeout(this.generateChallenge.bind(this), 1); 
+      setTimeout(this.generateChallenge.bind(this), 1);
 
       // Stop
       return;
@@ -279,6 +401,11 @@ class App extends React.Component {
 
     const newState = {
       hadFailThisRound: false,
+      isSolved: false,
+      wrong0: false,
+      wrong1: false,
+      wrong2: false,
+      wrong3: false,
     };
 
     if(learnMode === 0) {
@@ -350,19 +477,19 @@ class App extends React.Component {
       toLearnPhases: [
         [
           'tts',
+          'pinyinWithoutTone',
           'pinyinText',
-          'pinyinWithTone',
           'translations',
           'word',
         ], [
           'word',
-          'pinyinWithTone',
+          'pinyinWithoutTone',
           'pinyinText',
           'tts',
           'translations',
         ], [
           'translations',
-          'pinyinWithTone',
+          'pinyinWithoutTone',
           'pinyinText',
           'tts',
           'word',
@@ -383,110 +510,214 @@ class App extends React.Component {
     });
   }
 
-  onAnswerClicked(toSolve, wasCorrect) {
+  playAudio(soundFile) {
+    new Audio(soundFile).play();
+  }
+
+  nextChallengePart() {
+    const newTheChallenge = {...this.state.theChallenge};
+    ++newTheChallenge.solved;
+
+    this.setState({
+      theChallenge: newTheChallenge,
+      isSolved: false,
+      right0: false,
+      right1: false,
+      right2: false,
+      right3: false,
+      wrong0: false,
+      wrong1: false,
+      wrong2: false,
+      wrong3: false,
+    });
+
+    // Try play audio if it's available
+    setTimeout(this.playTtsIfUnlocked.bind(this), 1);
+  }
+
+  onAnswerClicked(toSolve, wasCorrect, theNumber) {
     // Is this the one we are up to?
     if(this.state.theChallenge.solveOrder[this.state.theChallenge.solved] !== toSolve) return;
 
     if(wasCorrect) {
-      const newTheChallenge = {...this.state.theChallenge};
-      ++newTheChallenge.solved;
-
       this.setState({
-        theChallenge: newTheChallenge,
+        isSolved: true,
+        ['right' + theNumber]: true,
       });
     } else {
       this.setState({
         hadFail: this.state.hadFail + 1,
         hadFailThisRound: true,
+        ['wrong' + theNumber]: true,
       });
     }
   }
 
+  getKeyCodeText(theNumber) {
+    switch(theNumber) {
+      case 0:
+        return 'Q';
+
+        case 1:
+          return 'P';
+
+          case 2:
+            return 'Z';
+
+          case 3:
+            return 'M';
+
+          default:
+            return 'Unknown';
+    }
+  }
+
   renderChallengeRow(theChallenge, toSolve, isSolved) {
-    return <tr key={toSolve}>
-      <td>
-        {
-          this.getHeaderTitle(toSolve)
-        }
-      </td>
+    return <div key={toSolve}>
       {
-        toSolve === 'word' && theChallenge.word.map((word) => {
-          let className = 'clickable';
+        toSolve === 'word' && theChallenge.word.map((word, theNumber) => {
+          let className = 'clickable challengeSection';
           const isCorrect = theChallenge.correctWord === word;
-          if(isSolved && isCorrect) {
-            className += ' solved';
+          if(!!this.state['right' + theNumber]) {
+            className += ' correctAnswer';
           }
-          return <td key={word} className={className} onClick={this.onAnswerClicked.bind(this, toSolve, isCorrect)}>
+          if(!!this.state['wrong' + theNumber]) {
+            className += ' wrongAnswer';
+          }
+
+          let keyBind = this.onAnswerClicked.bind(this, toSolve, isCorrect, theNumber);
+          this.keyBinds[theNumber] = keyBind;
+
+          return <div key={word} className={className} onClick={keyBind}>
             {
               word
             }
-          </td>
+            <br />
+            <div>
+              {
+                this.getKeyCodeText(theNumber)
+              }
+            </div>
+          </div>
         })
       }
       {
-        toSolve === 'pinyinWithTone' && theChallenge.pinyinWithTone.map((pinyinWithTone) => {
-          let className = 'clickable';
-          const isCorrect = theChallenge.correctPinyinWithTone === pinyinWithTone;
-          if(isSolved && isCorrect) {
-            className += ' solved';
+        toSolve === 'pinyinWithoutTone' && theChallenge.pinyinWithoutTone.map((pinyinWithoutTone, theNumber) => {
+          let className = 'clickable challengeSection';
+          const isCorrect = theChallenge.correctPinyinWithoutTone === pinyinWithoutTone;
+          if(!!this.state['right' + theNumber]) {
+            className += ' correctAnswer';
           }
-          return <td key={pinyinWithTone} className={className} onClick={this.onAnswerClicked.bind(this, toSolve, isCorrect)}>
+          if(!!this.state['wrong' + theNumber]) {
+            className += ' wrongAnswer';
+          }
+
+          let keyBind = this.onAnswerClicked.bind(this, toSolve, isCorrect, theNumber);
+          this.keyBinds[theNumber] = keyBind;
+
+          return <div key={pinyinWithoutTone} className={className} onClick={keyBind}>
             {
-              pinyinWithTone
+              pinyinWithoutTone
             }
-          </td>
+            <br />
+            <div>
+              {
+                this.getKeyCodeText(theNumber)
+              }
+            </div>
+          </div>
         })
       }
       {
-        toSolve === 'pinyinText' && theChallenge.pinyinText.map((pinyinText) => {
-          let className = 'clickable';
+        toSolve === 'pinyinText' && theChallenge.pinyinText.map((pinyinText, theNumber) => {
+          let className = 'clickable challengeSection';
           const isCorrect = theChallenge.correctPinYinText === pinyinText;
-          if(isSolved && isCorrect) {
-            className += ' solved';
+          if(!!this.state['right' + theNumber]) {
+            className += ' correctAnswer';
           }
-          return <td key={pinyinText} className={className} onClick={this.onAnswerClicked.bind(this, toSolve, isCorrect)}>
+          if(!!this.state['wrong' + theNumber]) {
+            className += ' wrongAnswer';
+          }
+
+          let keyBind = this.onAnswerClicked.bind(this, toSolve, isCorrect, theNumber);
+          this.keyBinds[theNumber] = keyBind;
+          
+          return <div key={pinyinText} className={className} onClick={keyBind}>
             {
               pinyinText
             }
-          </td>
+            <br />
+            <div>
+              {
+                this.getKeyCodeText(theNumber)
+              }
+            </div>
+          </div>
         })
       }
       {
-        toSolve === 'translations' && theChallenge.translations.map((translations) => {
-          let className = 'clickable';
-          const isCorrect = theChallenge.correctTranslations === translations;
-          if(isSolved && isCorrect) {
-            className += ' solved';
+        toSolve === 'translations' && theChallenge.translations.map((translation, theNumber) => {
+          let className = 'clickable challengeSection';
+          const isCorrect = theChallenge.correctTranslations === translation;
+          if(!!this.state['right' + theNumber]) {
+            className += ' correctAnswer';
           }
-          return <td key={translations} className={className} onClick={this.onAnswerClicked.bind(this, toSolve, isCorrect)}>
+          if(!!this.state['wrong' + theNumber]) {
+            className += ' wrongAnswer';
+          }
+
+          let keyBind = this.onAnswerClicked.bind(this, toSolve, isCorrect, theNumber);
+          this.keyBinds[theNumber] = keyBind;
+
+          return <div key={translation} className={className} onClick={keyBind}>
             {
-              translations
+              translation
             }
-          </td>
+            <br />
+            <div>
+              {
+                this.getKeyCodeText(theNumber)
+              }
+            </div>
+          </div>
         })
       }
       {
-        toSolve === 'tts' && theChallenge.tts.map((tts) => {
-          let className = null;
+        toSolve === 'tts' && theChallenge.tts.map((tts, theNumber) => {
+          let className = 'challengeSection';
           const isCorrect = theChallenge.correctTts === tts;
-          if(isSolved && isCorrect) {
-            className = 'solved';
+          if(!!this.state['right' + theNumber]) {
+            className += ' correctAnswer';
           }
-          return <td key={tts} className={className}>
-            <audio controls>
-              <source src={tts} type="audio/ogg" />
-            </audio>
+          if(!!this.state['wrong' + theNumber]) {
+            className += ' wrongAnswer';
+          }
+
+          let keyBindAnswer = this.onAnswerClicked.bind(this, toSolve, isCorrect, theNumber);
+          let keyBindPlayAudio = this.playAudio.bind(this, tts);
+          this.keyBinds[theNumber] = keyBindPlayAudio;
+
+          return <div key={tts} className={className}>
             {
               !isSolved && <div>
-                <button onClick={this.onAnswerClicked.bind(this, toSolve, isCorrect)}>
-                  select
-                </button>
+                <Button variant="contained" color="primary" onClick={keyBindPlayAudio}>
+                  Play Sample
+                </Button>
+                <Button variant="contained" color="primary" onClick={keyBindAnswer}>
+                  Select
+                </Button>
+                <br />
+                <div>
+                  {
+                    this.getKeyCodeText(theNumber)
+                  }
+                </div>
               </div>
             }
-          </td>
+          </div>
         })
       }
-    </tr>
+    </div>
   }
 
   getHeaderTitle(elementName) {
@@ -498,17 +729,39 @@ class App extends React.Component {
         return 'Pinyin with Tone';
 
       case 'pinyinText':
-        return 'Pinyin with Tone Number';
+        return 'Pinyin Tone';
 
       case 'translations':
         return 'Translations';
 
       case 'tts':
         return 'Audio';
+        
+      case 'pinyinWithoutTone':
+        return 'Pinyin Letter';
       
       default:
         return 'unknown ' + elementName;
     }
+  }
+
+  getTts() {
+    const theChallenge = this.state.theChallenge;
+    if(!!theChallenge) {
+      for(let i=0; i<theChallenge.solved && i < theChallenge.solveOrder.length; ++i) {
+        let thisChallengeType = theChallenge.solveOrder[i];
+
+        if(thisChallengeType === 'tts') {
+          return theChallenge.correctTts;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  ttsIsUnlocked() {
+    return this.getTts() !== null;
   }
 
   render() {
@@ -522,9 +775,35 @@ class App extends React.Component {
 
     const rows = [];
 
+    let unlockedTts = false;
+    let unlockedChar = false;
+    let unlockedTranslations = false;
+    let unlockedLetter = 0;
+
     if(!!theChallenge) {
       for(let i=0; i<theChallenge.solved && i < theChallenge.solveOrder.length; ++i) {
-        rows.push(this.renderChallengeRow(theChallenge, theChallenge.solveOrder[i], true));
+        let thisChallengeType = theChallenge.solveOrder[i];
+        // rows.push(this.renderChallengeRow(theChallenge, thisChallengeType, true));
+
+        if(thisChallengeType === 'tts') {
+          unlockedTts = true;
+        }
+
+        if(thisChallengeType === 'pinyinWithoutTone') {
+          ++unlockedLetter;
+        }
+
+        if(thisChallengeType === 'pinyinText') {
+          ++unlockedLetter;
+        }
+
+        if(thisChallengeType === 'word') {
+          unlockedChar = true;
+        }
+
+        if(thisChallengeType === 'translations') {
+          unlockedTranslations = true;
+        }
       }
   
       // Anything to solve?
@@ -537,6 +816,58 @@ class App extends React.Component {
       <div className="App">
         {
           !!theChallenge && <div>
+            <div className="headerKnownInfoTop">
+              <span className="knownInfoTop">
+                {
+                  this.getHeaderTitle(theChallenge.solveOrder[theChallenge.solved])
+                }
+              </span>
+              {
+                <span className="knownInfoTop">
+                  <Button variant="contained" color="primary" disabled={!unlockedTts} onClick={this.playTtsIfUnlocked.bind(this)}>
+                    Play Sound [0-9]
+                  </Button>
+                </span>
+              }
+              {
+                unlockedChar && <span className="knownInfoTop">
+                  {
+                    theChallenge.correctWord
+                  }
+                </span>
+              }
+              {
+                unlockedLetter === 1 && <span className="knownInfoTop">
+                  {
+                    theChallenge.correctPinyinWithoutTone
+                  }
+                </span>
+              }
+              {
+                unlockedLetter === 2 && <span className="knownInfoTop">
+                  {
+                    theChallenge.correctPinyinWithTone
+                  }
+                </span>
+              }
+              {
+                unlockedLetter === 2 && <span className="knownInfoTop">
+                  {
+                    theChallenge.correctPinYinText
+                  }
+                </span>
+              }
+              {
+                unlockedTranslations && <span className="knownInfoTop">
+                  {
+                    theChallenge.correctTranslations
+                  }
+                </span>
+              }
+            </div>
+            {
+              rows
+            }
             <div>
               {
                 (this.state.wordNum + 1) + '/' + (this.state.toLearn.length) + ' '
@@ -551,16 +882,9 @@ class App extends React.Component {
                 (this.state.hadFail > 1) && (this.state.hadFail + ' Mistakes in this set')
               }
             </div>
-            <table className="translationTable">
-              <tbody>
-                {
-                  rows
-                }
-              </tbody>
-            </table>
             <div>
-              <button onClick={this.finishChallenge.bind(this)}>Stop Learning</button>
-              <button onClick={this.nextChallenge.bind(this)} disabled={false && theChallenge.solveOrder.length !== theChallenge.solved}>Next Challenge</button>
+              <Button variant="contained" color="secondary" onClick={this.finishChallenge.bind(this)}>Stop Learning</Button>
+              <Button variant="contained" color="primary" onClick={this.nextChallenge.bind(this)} disabled={theChallenge.solveOrder.length !== theChallenge.solved && !this.state.isSolved}>Next Puzzle [SPACE]</Button>
             </div>
           </div>
         }
@@ -678,10 +1002,10 @@ class App extends React.Component {
               
             </div>
             <div>
-              <button onClick={this.changeWord.bind(this, -1)}>Previous</button>
-              <button onClick={this.changeWord.bind(this, null)}>Back to Index</button>
-              <button onClick={this.doChallenge.bind(this)}>Learn it</button>
-              <button onClick={this.changeWord.bind(this, 1)}>Next</button>
+              <Button variant="contained" onClick={this.changeWord.bind(this, -1)}>Previous</Button>
+              <Button variant="contained" color="secondary" onClick={this.changeWord.bind(this, null)}>Back to Index</Button>
+              <Button variant="contained" color="primary" onClick={this.doChallenge.bind(this)}>Learn it</Button>
+              <Button variant="contained" onClick={this.changeWord.bind(this, 1)}>Next</Button>
             </div>
           </div>
         }
@@ -750,7 +1074,7 @@ class App extends React.Component {
                         </audio>
                       </td>
                       <td>
-                        <button onClick={this.setItem.bind(this, wordCount)}>Learn</button>
+                        <Button variant="contained" color="primary" onClick={this.setItem.bind(this, wordCount)}>Learn</Button>
                       </td>
                     </tr>
                   })

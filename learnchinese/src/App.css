@@ -34,3 +34,41 @@
   margin-right: 16px;
   text-align: center;
 }
+
+.headerKnownInfoTop {
+  text-align: center;
+}
+
+.knownInfoTop {
+  font-size: 48px;
+  margin-left: 8px;
+  border-left: 4px solid #000;
+  padding: 4px;
+}
+
+.challengeSection {
+  display: inline-block;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  font-size: 48px;
+  width: 49%;
+  height: 320px;
+  border: 1px solid #000;
+  margin: 4px;
+}
+
+.correctAnswer {
+  background: #0F0;
+}
+
+.wrongAnswer {
+  background: #F00;
+  color: #FFF;
+}
+
+.challengeRowHeader {
+  font-size: 48px;
+  font-weight: bold;
+}
+
