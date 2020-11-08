@@ -15,7 +15,7 @@ export default class RenderSentence extends React.Component {
         return <div>
             {
                 this.props.tokens.map((token, tokenIndex) => {
-                    const wordInfo = CharacterToPinYin.fromCharacter(token.value);
+                    const wordInfo = CharacterToPinYin.fromToken(token);
 
                     let classNameCanClick = "";
                     if(!!wordInfo) {
@@ -51,7 +51,7 @@ export default class RenderSentence extends React.Component {
                                             return <tr key={tokenRowIndex}>
                                                 {
                                                     tokenRow.cells.map((tokenCell, tokenCellIndex) => {
-                                                        return <td key={tokenCellIndex} colspan={tokenCell.colspan}>
+                                                        return <td key={tokenCellIndex} colSpan={tokenCell.colspan}>
                                                             {
                                                                 tokenCell.hint
                                                             }

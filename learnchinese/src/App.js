@@ -152,12 +152,12 @@ class App extends React.Component {
     return toReturn.join(' ');
   }
 
-  createPuzzle() {
+  generateChallenge() {
+    // Grab the word we need to do
+    let thisWord = this.state.toLearn[this.state.wordNum];
 
-  }
+    let currentItem = CharacterToPinYin.fromCharacter(thisWord);
 
-  doChallenge() {
-    const currentItem = this.state.currentItem;
     const correctPinYinText = this.getPinYinNumberFromItem(currentItem);
     const pinyinText = [
       correctPinYinText,
@@ -218,13 +218,14 @@ class App extends React.Component {
       ],
 
       solved: 1,
-      solveOrder: [
-        'pinyinText',
-        'word',
-        'pinyinWithTone',
-        'translations',
-        'tts',
-      ],
+      solveOrder: this.state.toLearnPhases[this.state.learnPhase],
+      // solveOrder: [
+      //   'pinyinText',
+      //   'word',
+      //   'pinyinWithTone',
+      //   'translations',
+      //   'tts',
+      // ],
     };
 
     const seenWords = {
@@ -249,11 +250,120 @@ class App extends React.Component {
     theChallenge.pinyinWithTone.sort(randomSort);
     theChallenge.translations.sort(randomSort);
     theChallenge.tts.sort(randomSort);
-    theChallenge.solveOrder.sort(randomSort);
 
     this.setState({
       theChallenge: theChallenge,
     });
+  }
+
+  nextChallenge() {
+    let learnMode = this.state.learnMode;
+    let wordNum = this.state.wordNum + 1;
+    let toLearn = [...this.state.toLearn];
+    let totalWords = this.state.toLearn.length;
+    let hadFail = this.state.hadFail;
+    let learnPhase = this.state.learnPhase;
+
+    const newState = {
+
+    };
+
+    if(learnMode === 0) {
+      if(wordNum >= totalWords) {
+        wordNum = 0;
+
+        if(this.state.hadFail > 0) {
+          hadFail = 0;
+        } else {
+          ++learnPhase;
+
+          // Randomise the order of the puzzles
+          toLearn.sort(randomSort);
+          newState.toLearn = toLearn;
+
+          if(learnPhase >= this.state.toLearnPhases.length) {
+            learnPhase = 0;
+            ++learnMode;
+            newState.theChallenge = null;
+          }
+        }
+      }
+    }
+
+    newState.learnMode = learnMode;
+    newState.wordNum = wordNum;
+    newState.totalWords = totalWords;
+    newState.hadFail = hadFail;
+    newState.learnPhase = learnPhase;
+
+    this.setState(newState);
+
+    console.log(newState);
+
+    if(learnMode === 0) {
+      // Generate the challenge based on the current learning objectives defined
+      setTimeout(this.generateChallenge.bind(this), 1);
+    }
+
+    if(learnMode === 1) {
+      window.alert('oh nice! You won something!')
+    }
+  }
+
+  doChallenge() {
+    const currentItem = this.state.currentItem;
+    const alternativeForms = currentItem.alternative_forms;
+    const challengeParts = {};
+    
+    for(let i=0; i<alternativeForms.length; ++i) {
+      let alternativeForm = alternativeForms[i];
+
+      for(let j=0; j<alternativeForm.tokens.length; ++j) {
+          let token = alternativeForm.tokens[j];
+
+          const wordInfo = CharacterToPinYin.fromToken(token);
+
+          if(wordInfo && wordInfo.word) {
+            challengeParts[wordInfo.word] = true;
+          }
+      }
+    }
+
+    const toLearn = Object.keys(challengeParts);
+
+    this.setState({
+      toLearn: toLearn,
+      learnMode: 0,
+      toLearnPhases: [
+        [
+          'tts',
+          'pinyinText',
+          'pinyinWithTone',
+          'translations',
+          'word',
+        ], [
+          'word',
+          'pinyinWithTone',
+          'pinyinText',
+          'tts',
+          'translations',
+        ], [
+          'translations',
+          'pinyinWithTone',
+          'pinyinText',
+          'tts',
+          'word',
+        ]
+      ],
+      learnPhase: 0,
+      hadFail: 0,
+      wordNum: 0,
+    });
+
+    // Generate the challenge based on the current learning objectives defined
+    setTimeout(this.generateChallenge.bind(this), 1);
+
+    console.log(toLearn);
   }
 
   finishChallenge() {
@@ -272,6 +382,10 @@ class App extends React.Component {
 
       this.setState({
         theChallenge: newTheChallenge,
+      });
+    } else {
+      this.setState({
+        hadFail: this.state.hadFail + 1,
       });
     }
   }
@@ -419,8 +533,8 @@ class App extends React.Component {
               </tbody>
             </table>
             <div>
-              <button onClick={this.finishChallenge.bind(this)}>Back</button>
-              <button onClick={this.doChallenge.bind(this)}>Randomise Challenge</button>
+              <button onClick={this.finishChallenge.bind(this)}>Stop Learning</button>
+              <button onClick={this.nextChallenge.bind(this)} disabled={false && theChallenge.solveOrder.length !== theChallenge.solved}>Next Challenge</button>
             </div>
           </div>
         }
@@ -437,7 +551,7 @@ class App extends React.Component {
                     </th>
                     <td>
                       {
-                        // <RenderSentence text={currentItem.word} tokens={currentItem.tokens} />
+                        currentItem.word
                       }
                     </td>
                   </tr>
@@ -540,7 +654,7 @@ class App extends React.Component {
             <div>
               <button onClick={this.changeWord.bind(this, -1)}>Previous</button>
               <button onClick={this.changeWord.bind(this, null)}>Back to Index</button>
-              <button onClick={this.doChallenge.bind(this)}>Do Challenge</button>
+              <button onClick={this.doChallenge.bind(this)}>Learn it</button>
               <button onClick={this.changeWord.bind(this, 1)}>Next</button>
             </div>
           </div>
