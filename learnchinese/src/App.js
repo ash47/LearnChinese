@@ -4,6 +4,9 @@ import RenderSentence from './RenderSentence.js';
 import CharacterToPinYin from './character_to_pinyin.js';
 import Button from '@material-ui/core/Button';
 
+// Require our vocab
+const theVocab = require('./vocab.json');
+
 function getAltFormLength(theWord) {
   return theWord.alternative_forms.reduce((currentCount, altForm) => {
     return altForm.example_sentence.length + currentCount;
@@ -33,7 +36,7 @@ class App extends React.Component {
       //currentItemNumber: 0,
     };
     
-    this.state.theVocab = require('./vocab.json');
+    this.state.theVocab = theVocab;
     this.sortVocab();
 
     // Load in the vocab
@@ -897,8 +900,8 @@ class App extends React.Component {
               }
             </div>
             <div>
+              <Button variant="contained" color="primary" className="nextPuzzleButton" onClick={this.nextChallenge.bind(this)} disabled={theChallenge.solveOrder.length !== theChallenge.solved && !this.state.isSolved}>Next Puzzle [SPACE]</Button>
               <Button variant="contained" color="secondary" onClick={this.finishChallenge.bind(this)}>Stop Learning</Button>
-              <Button variant="contained" color="primary" onClick={this.nextChallenge.bind(this)} disabled={theChallenge.solveOrder.length !== theChallenge.solved && !this.state.isSolved}>Next Puzzle [SPACE]</Button>
             </div>
           </div>
         }

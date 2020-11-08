@@ -1,0 +1,7 @@
+{
+    "name": "learnchineseeasy",
+    "integrations": {
+      "capacitor": {}
+    },
+    "type": "react"
+  }
