@@ -324,6 +324,24 @@ class App extends React.Component {
     const seenWords = {
       [currentItem.word]: true,
     };
+
+    // Grab the word we need to do
+    if(this.state.toLearn.length > 1) {
+      while(true) {
+        const theWord = this.state.toLearn[Math.floor(Math.random() * this.state.toLearn.length)];
+        let testItem = CharacterToPinYin.fromCharacter(theWord);
+
+        if(!seenWords.hasOwnProperty(theWord)) {
+          seenWords[theWord] = true;
+          theChallenge.word.push(theWord);
+          theChallenge.pinyinWithoutTone.push(testItem.pinyinWithoutTone);
+          theChallenge.translations.push(testItem.translations);
+          theChallenge.tts.push(testItem.tts);
+          break;
+        }
+      }
+    }
+
     while(theChallenge.word.length < maxChallenges) {
       const possibleItem = this.state.theVocab[Math.floor(Math.random() * this.state.theVocab.length)];
       const theWord = possibleItem.word;
@@ -411,25 +429,39 @@ class App extends React.Component {
     };
 
     if(learnMode === 0) {
-      if(wordNum >= totalWords) {
+      if(this.state.hadFail > 0) {
+
+        let existingPop = toLearn.splice(wordNum, 1)[0];
+
+        // Randomise puzzles
+        toLearn.sort(randomSort);
+        toLearn.push(existingPop);
+        newState.toLearn = toLearn;
+        hadFail = 0;
+
+        // We are back at the second word
         wordNum = 0;
-
-        if(this.state.hadFail > 0) {
-          hadFail = 0;
-        } else {
-          ++learnPhase;
-
-          // Randomise the order of the puzzles
-          toLearn.sort(randomSort);
-          newState.toLearn = toLearn;
-
-          if(learnPhase >= this.state.toLearnPhases.length) {
-            learnPhase = 0;
-            ++learnMode;
-            newState.theChallenge = null;
+      } else {
+        if(wordNum >= totalWords) {
+          wordNum = 0;
+  
+          if(this.state.hadFail > 0) {
+            hadFail = 0;
+          } else {
+            ++learnPhase;
+  
+            // Randomise the order of the puzzles
+            toLearn.sort(randomSort);
+            newState.toLearn = toLearn;
+  
+            if(learnPhase >= this.state.toLearnPhases.length) {
+              learnPhase = 0;
+              ++learnMode;
+              newState.theChallenge = null;
+            }
           }
         }
-      }
+      } 
     }
 
     newState.learnMode = learnMode;
@@ -594,12 +626,12 @@ class App extends React.Component {
             {
               word
             }
-            <br />
+            {/* <br />
             <div>
               {
                 this.getKeyCodeText(theNumber)
               }
-            </div>
+            </div> */}
           </div>
         })
       }
@@ -621,12 +653,12 @@ class App extends React.Component {
             {
               pinyinWithoutTone
             }
-            <br />
+            {/* <br />
             <div>
               {
                 this.getKeyCodeText(theNumber)
               }
-            </div>
+            </div> */}
           </div>
         })
       }
@@ -648,12 +680,12 @@ class App extends React.Component {
             {
               pinyinText
             }
-            <br />
+            {/* <br />
             <div>
               {
                 this.getKeyCodeText(theNumber)
               }
-            </div>
+            </div> */}
           </div>
         })
       }
@@ -675,12 +707,12 @@ class App extends React.Component {
             {
               translation
             }
-            <br />
+            {/* <br />
             <div>
               {
                 this.getKeyCodeText(theNumber)
               }
-            </div>
+            </div> */}
           </div>
         })
       }
@@ -716,7 +748,7 @@ class App extends React.Component {
                 <Button variant="contained" color="primary" onClick={keyBindAnswer}>
                   Select
                 </Button>
-                <br />
+                {/* <br />
                 <div>
                   Play Sample - 
                   {
@@ -728,7 +760,7 @@ class App extends React.Component {
                   {
                     this.getKeyCodeText(theNumber)
                   }
-                </div>
+                </div> */}
               </div>
             }
           </div>
@@ -833,75 +865,79 @@ class App extends React.Component {
       <div className="App">
         {
           !!theChallenge && <div>
-            <div className="headerKnownInfoTop">
-              <span className="knownInfoTop">
+            <div>
+              <div className="headerKnownInfoTop">
+                <span>
+                  {
+                    this.getHeaderTitle(theChallenge.solveOrder[theChallenge.solved])
+                  }
+                </span>
+              </div>
+              <div>
                 {
-                  this.getHeaderTitle(theChallenge.solveOrder[theChallenge.solved])
+                  (this.state.wordNum + 1) + '/' + (this.state.toLearn.length) + ' '
                 }
-              </span>
-              {
-                <span className="knownInfoTop">
-                  <Button variant="contained" color="primary" disabled={!unlockedTts} onClick={this.playTtsIfUnlocked.bind(this)}>
-                    Play Sound [0-9]
+                {
+                  (this.state.hadFail === 0) && 'No Mistakes in this set'
+                }
+                {
+                  (this.state.hadFail === 1) && '1 Mistake in this set'
+                }
+                {
+                  (this.state.hadFail > 1) && (this.state.hadFail + ' Mistakes in this set')
+                }
+              </div>
+              <Button variant="contained" color="secondary" className="stopPuzzleButton" onClick={this.finishChallenge.bind(this)}>Stop Learning</Button>
+            </div>
+            <div className="positionBottom">
+              <div className="headerKnownInfoTop">
+                {
+                  unlockedChar && <span className="knownInfoTop">
+                    {
+                      theChallenge.correctWord
+                    }
+                  </span>
+                }
+                {
+                  unlockedLetter === 1 && <span className="knownInfoTop">
+                    {
+                      theChallenge.correctPinyinWithoutTone
+                    }
+                  </span>
+                }
+                {
+                  unlockedLetter === 2 && <span className="knownInfoTop">
+                    {
+                      theChallenge.correctPinyinWithTone
+                    }
+                  </span>
+                }
+                {
+                  unlockedLetter === 2 && <span className="knownInfoTop">
+                    {
+                      theChallenge.correctPinYinText
+                    }
+                  </span>
+                }
+                {
+                  unlockedTranslations && <span className="knownInfoTop">
+                    {
+                      theChallenge.correctTranslations
+                    }
+                  </span>
+                }
+              </div>
+              <div>
+                <Button variant="contained" color="primary" className="listenButton" disabled={!unlockedTts} onClick={this.playTtsIfUnlocked.bind(this)}>
+                    Play Sound
                   </Button>
-                </span>
-              }
+              </div>
               {
-                unlockedChar && <span className="knownInfoTop">
-                  {
-                    theChallenge.correctWord
-                  }
-                </span>
+                rows
               }
-              {
-                unlockedLetter === 1 && <span className="knownInfoTop">
-                  {
-                    theChallenge.correctPinyinWithoutTone
-                  }
-                </span>
-              }
-              {
-                unlockedLetter === 2 && <span className="knownInfoTop">
-                  {
-                    theChallenge.correctPinyinWithTone
-                  }
-                </span>
-              }
-              {
-                unlockedLetter === 2 && <span className="knownInfoTop">
-                  {
-                    theChallenge.correctPinYinText
-                  }
-                </span>
-              }
-              {
-                unlockedTranslations && <span className="knownInfoTop">
-                  {
-                    theChallenge.correctTranslations
-                  }
-                </span>
-              }
-            </div>
-            {
-              rows
-            }
-            <div>
-              {
-                (this.state.wordNum + 1) + '/' + (this.state.toLearn.length) + ' '
-              }
-              {
-                (this.state.hadFail === 0) && 'No Mistakes in this set'
-              }
-              {
-                (this.state.hadFail === 1) && '1 Mistake in this set'
-              }
-              {
-                (this.state.hadFail > 1) && (this.state.hadFail + ' Mistakes in this set')
-              }
-            </div>
-            <div>
-              <Button variant="contained" color="primary" className="nextPuzzleButton" onClick={this.nextChallenge.bind(this)} disabled={theChallenge.solveOrder.length !== theChallenge.solved && !this.state.isSolved}>Next Puzzle [SPACE]</Button>
-              <Button variant="contained" color="secondary" onClick={this.finishChallenge.bind(this)}>Stop Learning</Button>
+              <div>
+                <Button variant="contained" color="primary" className="nextPuzzleButton" onClick={this.nextChallenge.bind(this)} disabled={theChallenge.solveOrder.length !== theChallenge.solved && !this.state.isSolved}>Next Puzzle</Button>
+              </div>
             </div>
           </div>
         }
@@ -969,13 +1005,17 @@ class App extends React.Component {
                       }
                     </th>
                     <td>
-                      <audio key={currentItem.tts} controls>
-                        <source src={currentItem.tts} type="audio/ogg" />
-                      </audio>
+                      <Button variant="contained" color="primary" onClick={this.playAudio.bind(this, currentItem.tts)}>Play</Button>
                     </td>
                   </tr>
                 </tbody>
               </table>
+            </div>
+            <div>
+              <Button variant="contained" onClick={this.changeWord.bind(this, -1)}>Previous</Button>
+              <Button variant="contained" color="secondary" onClick={this.changeWord.bind(this, null)}>Back to Index</Button>
+              <Button variant="contained" color="primary" onClick={this.doChallenge.bind(this)}>Learn it</Button>
+              <Button variant="contained" onClick={this.changeWord.bind(this, 1)}>Next</Button>
             </div>
             <div>
               <table className="translationTable">
@@ -1002,9 +1042,7 @@ class App extends React.Component {
                           }
                         </td>
                         <td>
-                          <audio key={alternativeForm.tts} controls>
-                            <source src={alternativeForm.tts} type="audio/ogg" />
-                          </audio>
+                          <Button variant="contained" color="primary" onClick={this.playAudio.bind(this, alternativeForm.tts)}>Play</Button>
                         </td>
                         <td>
                           {
@@ -1016,13 +1054,6 @@ class App extends React.Component {
                   }
                 </tbody>
               </table>
-              
-            </div>
-            <div>
-              <Button variant="contained" onClick={this.changeWord.bind(this, -1)}>Previous</Button>
-              <Button variant="contained" color="secondary" onClick={this.changeWord.bind(this, null)}>Back to Index</Button>
-              <Button variant="contained" color="primary" onClick={this.doChallenge.bind(this)}>Learn it</Button>
-              <Button variant="contained" onClick={this.changeWord.bind(this, 1)}>Next</Button>
             </div>
           </div>
         }
@@ -1042,14 +1073,7 @@ class App extends React.Component {
                     }
                   </th>
                   <th>
-                    {
-                      this.getHeaderTitle('pinyinWithTone')
-                    }
-                  </th>
-                  <th>
-                    {
-                      this.getHeaderTitle('translations')
-                    }
+                    Learn
                   </th>
                   <th>
                     {
@@ -1057,7 +1081,14 @@ class App extends React.Component {
                     }
                   </th>
                   <th>
-                    Learn
+                    {
+                      this.getHeaderTitle('pinyinText')
+                    }
+                  </th>
+                  <th>
+                    {
+                      this.getHeaderTitle('translations')
+                    }
                   </th>
                 </tr>
               </thead>
@@ -1076,6 +1107,12 @@ class App extends React.Component {
                         }
                       </td>
                       <td>
+                        <Button variant="contained" color="primary" onClick={this.setItem.bind(this, wordCount)}>Learn</Button>
+                      </td>
+                      <td>
+                        <Button variant="contained" color="primary" onClick={this.playAudio.bind(this, thisWord.tts)}>Play</Button>
+                      </td>
+                      <td>
                         {
                           this.getPinYinNumberFromItem(thisWord)
                         }
@@ -1084,14 +1121,6 @@ class App extends React.Component {
                         {
                           thisWord.translations
                         }
-                      </td>
-                      <td>
-                        <audio key={thisWord.tts} controls>
-                          <source src={thisWord.tts} type="audio/ogg" />
-                        </audio>
-                      </td>
-                      <td>
-                        <Button variant="contained" color="primary" onClick={this.setItem.bind(this, wordCount)}>Learn</Button>
                       </td>
                     </tr>
                   })
