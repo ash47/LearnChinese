@@ -4,8 +4,26 @@ import RenderSentence from './RenderSentence.js';
 import CharacterToPinYin from './character_to_pinyin.js';
 import Button from '@material-ui/core/Button';
 
+import { reactLocalStorage } from 'reactjs-localstorage';
+
 // Require our vocab
 const theVocab = require('./vocab.json');
+
+// Remove duplicate words
+(() => {
+  const seenWords = {};
+
+  for(let i=theVocab.length - 1; i >= 0; --i) {
+    const theItem = theVocab[i];
+    const theWord = theItem.word;
+
+    if(seenWords.hasOwnProperty(theWord)) {
+      theVocab.splice(i, 1);
+    }
+
+    seenWords[theWord] = true;
+  }
+})();
 
 function getAltFormLength(theWord) {
   return theWord.alternative_forms.reduce((currentCount, altForm) => {
@@ -30,14 +48,19 @@ function randomSort() {
 class App extends React.Component {
   constructor() {
     super();
+    
+    // The save data
+    this.theSaveData = reactLocalStorage.getObject('data') || {};
+    this.theSaveData.stats = this.theSaveData.stats || {};
 
     // Init state
     this.state = {
+      smartWordCount: 5,
       //currentItemNumber: 0,
     };
     
     this.state.theVocab = theVocab;
-    this.sortVocab();
+    setImmediate(this.sortVocab.bind(this));
 
     // Load in the vocab
     CharacterToPinYin.loadVocab(this.state.theVocab);
@@ -46,8 +69,8 @@ class App extends React.Component {
     //this.state.currentItem = this.state.theVocab[0];
 
     // Bind up key handler
-    this.keyboardHandler = this.keyboardHandler.bind(this);
-    this.keyBinds = {};
+    //this.keyboardHandler = this.keyboardHandler.bind(this);
+    /*this.keyBinds = {};
 
     this.mappedKeys = {
       ['q'.charCodeAt(0)]: 0,
@@ -93,10 +116,15 @@ class App extends React.Component {
       ['>'.charCodeAt(0)]: 3,
       ['/'.charCodeAt(0)]: 3,
       ['/'.charCodeAt(0)]: 3,
-    };
+    };*/
   }
 
-  keyboardHandler(event) {
+  saveData() {
+    // Save it
+    reactLocalStorage.setObject('data', this.theSaveData);
+  }
+
+  /*keyboardHandler(event) {
     if(event.keyCode >= '0'.charCodeAt(0) && event.keyCode <= '9'.charCodeAt(0)) {
       //Do whatever when esc is pressed
       event.preventDefault();
@@ -117,7 +145,9 @@ class App extends React.Component {
     if(event.keyCode === ' '.charCodeAt(0)) {
       this.nextChallenge();
     }
-  }
+  }*/
+
+
 
   playTtsIfUnlocked() {
     const ttsSound = this.getTts();
@@ -127,15 +157,17 @@ class App extends React.Component {
     }
   }
 
-  componentDidMount(){
-    document.addEventListener('keydown', this.keyboardHandler, false);
-  }
-  componentWillUnmount(){
-    document.removeEventListener('keydown', this.keyboardHandler, false);
-  }
+  // componentDidMount(){
+  //   document.addEventListener('keydown', this.keyboardHandler, false);
+  // }
+  // componentWillUnmount(){
+  //   document.removeEventListener('keydown', this.keyboardHandler, false);
+  // }
 
   sortVocab() {
-    this.state.theVocab.sort((a, b) => {
+    const newVocab = [...this.state.theVocab];
+
+    newVocab.sort((a, b) => {
       // Order by pinyin
       // if(a.pinyinWithoutTone < b.pinyinWithoutTone) {
       //   return -1;
@@ -150,6 +182,24 @@ class App extends React.Component {
       // if(a.pinyinNumber > b.pinyinNumber) {
       //   return 1;
       // }
+
+      // Anything we have learned recently goes to the end
+      let statsA = this.theSaveData.stats[a.word];
+      let statsB = this.theSaveData.stats[b.word];
+
+      if(statsA || statsB) {
+        if(!statsA) {
+          return -1;
+        } else if(!statsB) {
+          return 1;
+        } else {
+          if(statsA.lastLearned > statsB.lastLearned) {
+            return -1;
+          } else if(statsA.lastLearned < statsB.lastLearned) {
+            return 1;
+          }
+        }
+      }
 
       // Smaller words first
       if(a.word.length < b.word.length) {
@@ -198,6 +248,10 @@ class App extends React.Component {
       }
 
       return 0;
+    });
+
+    this.setState({
+      theVocab: newVocab,
     });
   }
 
@@ -380,7 +434,7 @@ class App extends React.Component {
   }
 
   nextChallenge() {
-    if(!this.state.isSolved) return;
+    // if(!this.state.isSolved) return;
 
     if(this.state.theChallenge.solved + 1 >= this.state.theChallenge.solveOrder.length) {
       this.nextChallengeMajor();
@@ -478,11 +532,50 @@ class App extends React.Component {
     }
 
     if(learnMode === 1) {
-      window.alert('oh nice! You won something!')
+      window.alert('oh nice! You won something!');
+
+      for(let i=0; i<this.state.toLearn.length; ++i) {
+        const thisWordToLearn = this.state.toLearn[i];
+
+        // Ensure we have a store for it
+        this.theSaveData.stats[thisWordToLearn] = this.theSaveData.stats[thisWordToLearn] || {
+          totalTimesLearned: 0,
+        };
+        ++this.theSaveData.stats[thisWordToLearn].totalTimesLearned;
+        this.theSaveData.stats[thisWordToLearn].lastLearned = new Date();
+      }
+
+      // Save data
+      this.saveData();
+
+      // Update the sorting of words and such
+      this.sortVocab();
     }
   }
 
-  doChallenge() {
+  handleSmartNumber(event) {
+    this.setState({
+      smartWordCount: parseInt(event.target.value)
+    });
+  }
+
+  doSmartChallenge() {
+    const wordList = [
+      // Two that we haven't seen for the longest
+      this.state.theVocab[this.state.theVocab.length - 1].word,
+      //this.state.theVocab[this.state.theVocab.length - 2].word
+    ];
+
+    // Add extra until we met the count
+    for(let i=0; wordList.length < this.state.smartWordCount; ++i) {
+      wordList.push(this.state.theVocab[i].word);
+    }
+
+    // Do the challenge
+    this.precomputeChallenge(wordList);
+  }
+
+  doSpecificChallenge() {
     const currentItem = this.state.currentItem;
     const alternativeForms = currentItem.alternative_forms;
     const challengeParts = {};
@@ -501,12 +594,16 @@ class App extends React.Component {
       }
     }
 
+    // Do the challenge
+    this.precomputeChallenge(Object.keys(challengeParts));
+  }
+
+  precomputeChallenge(wordList) {
     // Random order
-    const toLearn = Object.keys(challengeParts);
-    toLearn.sort(randomSort);
+    wordList.sort(randomSort);
 
     this.setState({
-      toLearn: toLearn,
+      toLearn: wordList,
       learnMode: 0,
       toLearnPhases: [
         [
@@ -620,7 +717,7 @@ class App extends React.Component {
           }
 
           let keyBind = this.onAnswerClicked.bind(this, toSolve, isCorrect, theNumber);
-          this.keyBinds[theNumber] = keyBind;
+          // this.keyBinds[theNumber] = keyBind;
 
           return <div key={word} className={className} onClick={keyBind}>
             {
@@ -647,7 +744,7 @@ class App extends React.Component {
           }
 
           let keyBind = this.onAnswerClicked.bind(this, toSolve, isCorrect, theNumber);
-          this.keyBinds[theNumber] = keyBind;
+          // this.keyBinds[theNumber] = keyBind;
 
           return <div key={pinyinWithoutTone} className={className} onClick={keyBind}>
             {
@@ -674,7 +771,7 @@ class App extends React.Component {
           }
 
           let keyBind = this.onAnswerClicked.bind(this, toSolve, isCorrect, theNumber);
-          this.keyBinds[theNumber] = keyBind;
+          // this.keyBinds[theNumber] = keyBind;
           
           return <div key={pinyinText} className={className} onClick={keyBind}>
             {
@@ -701,7 +798,7 @@ class App extends React.Component {
           }
 
           let keyBind = this.onAnswerClicked.bind(this, toSolve, isCorrect, theNumber);
-          this.keyBinds[theNumber] = keyBind;
+          // this.keyBinds[theNumber] = keyBind;
 
           return <div key={translation} className={className} onClick={keyBind}>
             {
@@ -730,14 +827,14 @@ class App extends React.Component {
           let keyBindAnswer = this.onAnswerClicked.bind(this, toSolve, isCorrect, theNumber);
           let keyBindPlayAudio = this.playAudio.bind(this, tts);
 
-          let keyBindCheckShift = (event) => {
-            if(event.shiftKey) {
-              keyBindAnswer(event);
-            } else {
-              keyBindPlayAudio(event);
-            }
-          };
-          this.keyBinds[theNumber] = keyBindCheckShift.bind(this);
+          // let keyBindCheckShift = (event) => {
+          //   if(event.shiftKey) {
+          //     keyBindAnswer(event);
+          //   } else {
+          //     keyBindPlayAudio(event);
+          //   }
+          // };
+          // this.keyBinds[theNumber] = keyBindCheckShift.bind(this);
 
           return <div key={tts} className={className}>
             {
@@ -936,7 +1033,7 @@ class App extends React.Component {
                 rows
               }
               <div>
-                <Button variant="contained" color="primary" className="nextPuzzleButton" onClick={this.nextChallenge.bind(this)} disabled={theChallenge.solveOrder.length !== theChallenge.solved && !this.state.isSolved}>Next Puzzle</Button>
+                <Button variant="contained" color="primary" className="nextPuzzleButton" onClick={this.nextChallenge.bind(this)} disabled={false && theChallenge.solveOrder.length !== theChallenge.solved && !this.state.isSolved}>Next Puzzle</Button>
               </div>
             </div>
           </div>
@@ -1014,7 +1111,7 @@ class App extends React.Component {
             <div>
               <Button variant="contained" onClick={this.changeWord.bind(this, -1)}>Previous</Button>
               <Button variant="contained" color="secondary" onClick={this.changeWord.bind(this, null)}>Back to Index</Button>
-              <Button variant="contained" color="primary" onClick={this.doChallenge.bind(this)}>Learn it</Button>
+              <Button variant="contained" color="primary" onClick={this.doSpecificChallenge.bind(this)}>Learn it</Button>
               <Button variant="contained" onClick={this.changeWord.bind(this, 1)}>Next</Button>
             </div>
             <div>
@@ -1059,6 +1156,9 @@ class App extends React.Component {
         }
         {
           !currentItem && !theChallenge && <div>
+            <input type="text" value={this.state.smartWordCount} onChange={this.handleSmartNumber.bind(this)} />
+            <Button variant="contained" color="primary" onClick={this.doSmartChallenge.bind(this)}>Smart Lesson</Button>
+
             <table className="translationTable">
               <thead>
                 <tr>
