@@ -434,7 +434,7 @@ class App extends React.Component {
   }
 
   nextChallenge() {
-    // if(!this.state.isSolved) return;
+    if(!this.state.isSolved) return;
 
     if(this.state.theChallenge.solved + 1 >= this.state.theChallenge.solveOrder.length) {
       this.nextChallengeMajor();
@@ -1033,7 +1033,7 @@ class App extends React.Component {
                 rows
               }
               <div>
-                <Button variant="contained" color="primary" className="nextPuzzleButton" onClick={this.nextChallenge.bind(this)} disabled={false && theChallenge.solveOrder.length !== theChallenge.solved && !this.state.isSolved}>Next Puzzle</Button>
+                <Button variant="contained" color="primary" className="nextPuzzleButton" onClick={this.nextChallenge.bind(this)} disabled={theChallenge.solveOrder.length !== theChallenge.solved && !this.state.isSolved}>Next Puzzle</Button>
               </div>
             </div>
           </div>
